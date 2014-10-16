@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+from __future__ import print_function, unicode_literals
+import subprocess
+
+DOMAIN = 'my.fqdn.com'
+EMAIL = 'me@my.fqdn.com'
+ORG = 'FQDN Widgets, Inc.'
+COUNTRY = 'US'
+STATE = 'Arkansas'
+LOCALITY = 'Greenwood'
+
+p = subprocess.Popen(['openssl',
+                        'genrsa',
+                        '-des3',
+                        '-passout',
+                        'pass:1234',
+                        '2048',
+                        ], stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE)
+key, _ = p.communicate()
+#print(key.decode())
+
+p = subprocess.Popen(['openssl',
+                      'rsa',
+                      '-passin',
+                      'pass:1234',
+                      ], stdout=subprocess.PIPE,
+                      stderr=subprocess.PIPE,
+                      stdin=subprocess.PIPE)
+
+key, _ = p.communicate(key)
+with open('my.key', 'wb') as f:
+    f.write(key)
+
+
+subprocess.check_call(['openssl',
+                       'req',
+                       '-new',
+                       '-key',
+                       'my.key',
+                       '-out',
+                       'my.csr',
+                       '-subj',
+                       '/CN={}/emailAddress={}/O={}/C={}/ST={}/L={}'.format(
+                           DOMAIN, EMAIL, ORG, COUNTRY, STATE, LOCALITY),
+                       ])
+
+subprocess.check_call(['openssl',
+                       'x509',
+                       '-req',
+                       '-days',
+                       '365',
+                       '-in',
+                       'my.csr',
+                       '-signkey',
+                       'my.key',
+                       '-out',
+                       'my.crt',
+                       ])
